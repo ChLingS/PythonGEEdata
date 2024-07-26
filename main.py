@@ -27,6 +27,7 @@ def get_files_with_size(directory, size_kb):
     return files_with_size
 
 
+
 # 打开文件
 zhibiao = ['dewpoint_temperature_2m', 'temperature_2m',
               'surface_solar_radiation_downwards_sum', 'surface_runoff_sum',
@@ -34,7 +35,8 @@ zhibiao = ['dewpoint_temperature_2m', 'temperature_2m',
               'surface_pressure', 'total_precipitation_sum','surface_sensible_heat_flux_sum','surface_latent_heat_flux_sum']
 zhibiaosim = ['wd', 'ldwd', 'fs', 'qz', 'zz', 'Uf', 'Vf', 'qy', 'js','gr','qr']
 
-def start_down(mark):
+for mark in range(0, len(zhibiaosim)):
+
     biaoshi = zhibiaosim[mark]
 
     namelist = []
@@ -60,36 +62,40 @@ def start_down(mark):
     error_log = []
     error_name = []
     print(zhibiao[mark]+'.csv')
+
+    def download_file(url, filename):
+        global error_count
+        try:
+            response = requests.get(url)
+            with open(filename, 'wb') as file:
+                file.write(response.content)
+            print(filename)
+        except ProxyError:
+            print(f"Failed to download from {url}")
+            error_count += 1
+            error_log.append(url)
+            error_name.append(filename)
+        except requests.exceptions.SSLError:
+            print(f"SSLError")
+            error_count += 1
+            error_log.append(url)
+            error_name.append(filename)
+
     with open(zhibiao[mark]+'.csv', 'r') as csvfile:
         # 创建csv阅读器
-        csvreader = csv.reader(csvfile)
-        # 逐行读取
-        for row in csvreader:
-            url = row[1]
-            if (url[0] != 'n'):
-                try:
+        with ThreadPoolExecutor() as executor:
+            csvreader = csv.reader(csvfile)
+            for row in csvreader:
+                url = row[1]
+                if (url[0] != 'n'):
                     if (num > 227):
                         continue
-                    elif find_string_in_filenames(biaoshi+'_2', namelist[num]):
-                        num+=1
+                    elif find_string_in_filenames(biaoshi + '_2', namelist[num]):
+                        num += 1
                         continue
                     else:
-                        response = requests.get(url)
-                        with open(biaoshi+'_2/' + namelist[num], 'wb') as file:
-                            file.write(response.content)
-                        print(namelist[num])
-                    print(num)
-                except ProxyError:
-                    print(f"Failed to download from {url}")
-                    error_count += 1
-                    error_log.append(url)
-                    error_name.append(namelist[num])
-                except requests.exceptions.SSLError:
-                    print(f"SSLError")
-                    error_count += 1
-                    error_log.append(url)
-                    error_name.append(namelist[num])
-                num += 1
+                        executor.submit(download_file, url, biaoshi + '_2/' + namelist[num])
+                        num += 1
     print(f"Download finished with {error_count} errors.")
 
     error_name2 = []
@@ -133,17 +139,7 @@ def start_down(mark):
     files = get_files_with_size(directory, size_kb)
     print(files)
 
-with ThreadPoolExecutor() as pool:
-    for i in range(0, len(zhibiao)):
-        pool.submit(start_down, i)
-    # Start the load operations and mark each future with its URL
-    # future_to_url = {executor.submit(start_down, i): i for i in range(0, len(zhibiao))}
-    # for future in concurrent.futures.as_completed(future_to_url):
-    #     url = future_to_url[future]
-    #     try:
-    #         data = future.result()
-    #     except Exception as exc:
-    #         print('%r generated an exception: %s' % (url, exc))
+
 
 
 
