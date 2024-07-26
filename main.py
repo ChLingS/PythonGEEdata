@@ -1,6 +1,7 @@
 import csv
 import requests
 from requests.exceptions import ProxyError
+from concurrent.futures import ThreadPoolExecutor
 import os
 
 def find_string_in_filenames(directory, string_to_find):
@@ -33,8 +34,7 @@ zhibiao = ['dewpoint_temperature_2m', 'temperature_2m',
               'surface_pressure', 'total_precipitation_sum','surface_sensible_heat_flux_sum','surface_latent_heat_flux_sum']
 zhibiaosim = ['wd', 'ldwd', 'fs', 'qz', 'zz', 'Uf', 'Vf', 'qy', 'js','gr','qr']
 
-# mark = 2
-for mark in range(0,len(zhibiao)):
+def start_down(mark):
     biaoshi = zhibiaosim[mark]
 
     namelist = []
@@ -133,7 +133,17 @@ for mark in range(0,len(zhibiao)):
     files = get_files_with_size(directory, size_kb)
     print(files)
 
-
+with ThreadPoolExecutor() as pool:
+    for i in range(0, len(zhibiao)):
+        pool.submit(start_down, i)
+    # Start the load operations and mark each future with its URL
+    # future_to_url = {executor.submit(start_down, i): i for i in range(0, len(zhibiao))}
+    # for future in concurrent.futures.as_completed(future_to_url):
+    #     url = future_to_url[future]
+    #     try:
+    #         data = future.result()
+    #     except Exception as exc:
+    #         print('%r generated an exception: %s' % (url, exc))
 
 
 
